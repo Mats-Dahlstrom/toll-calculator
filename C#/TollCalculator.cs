@@ -2,8 +2,7 @@
 using System.Globalization;
 using TollFeeCalculator;
 
-public class TollCalculator
-{
+public class TollCalculator {
 
     /**
      * Calculate the total toll fee for one day
@@ -13,26 +12,22 @@ public class TollCalculator
      * @return - the total toll fee for that day
      */
 
-    public int GetTollFee(Vehicle vehicle, DateTime[] dates)
-    {
+    public int GetTollFee(Vehicle vehicle, DateTime[] dates) {
         DateTime intervalStart = dates[0];
         int totalFee = 0;
-        foreach (DateTime date in dates)
-        {
+        foreach (DateTime date in dates) {
             int nextFee = GetTollFee(date, vehicle);
             int tempFee = GetTollFee(intervalStart, vehicle);
 
             long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-            long minutes = diffInMillies/1000/60;
+            long minutes = diffInMillies / 1000 / 60;
 
-            if (minutes <= 60)
-            {
+            if (minutes <= 60) {
                 if (totalFee > 0) totalFee -= tempFee;
                 if (nextFee >= tempFee) tempFee = nextFee;
                 totalFee += tempFee;
-            }
-            else
-            {
+            } else {
+                //Intervalstart should get reset here
                 totalFee += nextFee;
             }
         }
@@ -40,8 +35,7 @@ public class TollCalculator
         return totalFee;
     }
 
-    private bool IsTollFreeVehicle(Vehicle vehicle)
-    {
+    private bool IsTollFreeVehicle(Vehicle vehicle) {
         if (vehicle == null) return false;
         String vehicleType = vehicle.GetVehicleType();
         return vehicleType.Equals(TollFreeVehicles.Motorbike.ToString()) ||
@@ -52,8 +46,7 @@ public class TollCalculator
                vehicleType.Equals(TollFreeVehicles.Military.ToString());
     }
 
-    public int GetTollFee(DateTime date, Vehicle vehicle)
-    {
+    public int GetTollFee(DateTime date, Vehicle vehicle) {
         if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle)) return 0;
 
         int hour = date.Hour;
@@ -63,32 +56,42 @@ public class TollCalculator
         else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
         else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
         else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
+        //First half hour is missed 8 - 14 
         else if (hour >= 8 && hour <= 14 && minute >= 30 && minute <= 59) return 8;
         else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
+        //What? first should be ">= 30"? TECHNICALLY WORKS, prev if statement
         else if (hour == 15 && minute >= 0 || hour == 16 && minute <= 59) return 18;
         else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
         else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
         else return 0;
     }
+    /*
+    * Fees will differ between 8 SEK and 18 SEK, depending on the time of day 
+    * Rush-hour traffic will render the highest fee
+    * The maximum fee for one day is 60 SEK
+    * A vehicle should only be charged once an hour
+      * In the case of multiple fees in the same hour period, the highest one applies.
+    * Some vehicle types are fee-free
+    * Weekends and holidays are fee-free
+    */
 
-    private Boolean IsTollFreeDate(DateTime date)
-    {
+
+    private Boolean IsTollFreeDate(DateTime date) {
         int year = date.Year;
         int month = date.Month;
         int day = date.Day;
 
         if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) return true;
 
-        if (year == 2013)
-        {
-            if (month == 1 && day == 1 ||
-                month == 3 && (day == 28 || day == 29) ||
-                month == 4 && (day == 1 || day == 30) ||
-                month == 5 && (day == 1 || day == 8 || day == 9) ||
-                month == 6 && (day == 5 || day == 6 || day == 21) ||
-                month == 7 ||
-                month == 11 && day == 1 ||
-                month == 12 && (day == 24 || day == 25 || day == 26 || day == 31))
+        if (year == 2013) {
+            if (month == 1 && day == 1 || // Nyårs dagen
+                month == 3 && (day == 28 || day == 29) || //Skärtorsdag Å långfredag
+                month == 4 && (day == 1 || day == 30) || // Annan dag Påsk Å Kungensfödelsedag
+                month == 5 && (day == 1 || day == 8 || day == 9) || // Första maj, dagen före + Kristihimmelsfärd
+                month == 6 && (day == 5 || day == 6 || day == 21) || // dagen före + Nationaldagen, Sommarsolståndet
+                month == 7 || // Hela Juli
+                month == 11 && day == 1 || // Allhelgonadagen
+                month == 12 && (day == 24 || day == 25 || day == 26 || day == 31)) // Julafton, Juldagen, Annandag jul, Nyårsafton
             {
                 return true;
             }
@@ -96,8 +99,8 @@ public class TollCalculator
         return false;
     }
 
-    private enum TollFreeVehicles
-    {
+    //Använd enum ELLER string
+    private enum TollFreeVehicles {
         Motorbike = 0,
         Tractor = 1,
         Emergency = 2,
