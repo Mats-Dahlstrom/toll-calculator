@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PublicHoliday;
+using System;
 using System.Globalization;
 using TollFeeCalculator;
 
@@ -12,25 +13,36 @@ public class TollCalculator {
      * @return - the total toll fee for that day
      */
 
-    public int GetTollFee(Vehicle vehicle, DateTime[] dates) {
-        DateTime intervalStart = dates[0];
+    public int GetTollFee(Vehicle vehicle, DateTime[] dates)
+    {
+        var dayTimeStamps = dates;
+        int totalDayFee = 0;
+        //TODO: Seperate by dates
+        totalDayFee += GetTollFeeForDay(vehicle, dayTimeStamps);
+        return totalDayFee;
+    }
+   
+    public int GetTollFeeForDay(Vehicle vehicle, DateTime[] dayTimeStamps)
+   {
+        //Should check if dates are not of the same day
+        DateTime intervalStart = dayTimeStamps[0];
         int totalFee = 0;
-        foreach (DateTime date in dates) {
+        int lastFee = 0;
+        foreach (DateTime date in dayTimeStamps) {
             int nextFee = GetTollFee(date, vehicle);
-            int tempFee = GetTollFee(intervalStart, vehicle);
 
-            long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-            long minutes = diffInMillies / 1000 / 60;
-
-            if (minutes <= 60) {
-                if (totalFee > 0) totalFee -= tempFee;
-                if (nextFee >= tempFee) tempFee = nextFee;
-                totalFee += tempFee;
+            long diffInTicks = date.Ticks - intervalStart.Ticks;
+            double minutes = TimeSpan.FromTicks(diffInTicks).TotalMinutes;
+            if (minutes <= 60d) {
+                if (nextFee >= lastFee) lastFee = nextFee;
             } else {
                 //Intervalstart should get reset here
-                totalFee += nextFee;
+                totalFee += lastFee;
+                lastFee = nextFee;
+                intervalStart = date;
             }
         }
+        totalFee += lastFee;
         if (totalFee > 60) totalFee = 60;
         return totalFee;
     }
@@ -77,13 +89,12 @@ public class TollCalculator {
 
 
     private Boolean IsTollFreeDate(DateTime date) {
-        int year = date.Year;
-        int month = date.Month;
-        int day = date.Day;
-
+        //Weekends are free
         if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) return true;
-
-        if (year == 2013) {
+        if (date.Month == 7) return true;
+        var holidays = new SwedenPublicHoliday().PublicHolidays(date.Year);
+        if (holidays.Contains(date.Date)) return true;
+/*        if (year == 2013) {
             if (month == 1 && day == 1 || // Nyårs dagen
                 month == 3 && (day == 28 || day == 29) || //Skärtorsdag Å långfredag
                 month == 4 && (day == 1 || day == 30) || // Annan dag Påsk Å Kungensfödelsedag
@@ -95,7 +106,7 @@ public class TollCalculator {
             {
                 return true;
             }
-        }
+        }*/
         return false;
     }
 

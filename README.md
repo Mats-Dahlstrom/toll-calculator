@@ -1,6 +1,9 @@
-![here we are](https://media.giphy.com/media/FnGJfc18tDDHy/giphy.gif)
+![here we are](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3MnQ0NWVwbjkwcmY2MHM2aDc0dTU2eHAzbXN2NTRkY3ZscXpkYm9vZiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YVGeZszGz4eC4/giphy.gif)
 
-# Toll fee calculator 1.0
+# Requirements
+This solution uses the library "Public Holidays" to calculate the fees: https://www.nuget.org/packages/PublicHoliday
+
+# Toll fee calculator 2.0
 A calculator for vehicle toll fees.
 
 * Make sure you read these instructions carefully
