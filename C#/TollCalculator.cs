@@ -1,9 +1,55 @@
 ﻿using PublicHoliday;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Globalization;
+using System.Linq;
 using TollFeeCalculator;
 
-public class TollCalculator {
+public class TollCalculator
+{
+    /* The list of fee timespans
+     * Order:Hour,Minute,Fee
+     * 
+    */
+    private (int,int,int)[] FeeSpans =
+    {
+        (00, 00, 00),
+        (06, 00, 08),
+        (06, 30, 13),
+        (07, 00, 18),
+        (08, 00, 13),
+        (08, 30, 08),
+        (15, 00, 13),
+        (15, 30, 18),
+        (17, 00, 13),
+        (18, 00, 08),
+        (18, 30, 00),
+    };
+
+    /**
+     * Calculate the total toll fee for the sent data
+     *
+     * @param vehicle - the vehicle
+     * @param dates   - date and time of all passes for the veichle
+     * @return - the total toll fee for that day
+     */
+
+    public int GetTollFee(Vehicle vehicle, DateTime[] dates)
+    {
+        var dayTimeStamps = dates;
+        int totalDayFee = 0;
+        var datesSeperatedByDay =
+            from date in dates
+            group date by date.Date into d
+            select  d.ToArray() ;
+        //TODO: Seperate by dates
+        foreach (var currentDates in datesSeperatedByDay)
+        {
+            totalDayFee += GetTollFeeForDay(vehicle, currentDates);
+        }
+        return totalDayFee;
+    }
 
     /**
      * Calculate the total toll fee for one day
@@ -13,17 +59,8 @@ public class TollCalculator {
      * @return - the total toll fee for that day
      */
 
-    public int GetTollFee(Vehicle vehicle, DateTime[] dates)
-    {
-        var dayTimeStamps = dates;
-        int totalDayFee = 0;
-        //TODO: Seperate by dates
-        totalDayFee += GetTollFeeForDay(vehicle, dayTimeStamps);
-        return totalDayFee;
-    }
-   
     public int GetTollFeeForDay(Vehicle vehicle, DateTime[] dayTimeStamps)
-   {
+    {
         //Should check if dates are not of the same day
         DateTime intervalStart = dayTimeStamps[0];
         int totalFee = 0;
@@ -61,21 +98,13 @@ public class TollCalculator {
     public int GetTollFee(DateTime date, Vehicle vehicle) {
         if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle)) return 0;
 
-        int hour = date.Hour;
-        int minute = date.Minute;
+        int timeStamp = (date.Hour * 100) + date.Minute;
+        var fee =
+            from span in FeeSpans
+            where ((span.Item1 * 100) + span.Item2) <= timeStamp
+            select span.Item3;
+        return fee.Last();
 
-        if (hour == 6 && minute >= 0 && minute <= 29) return 8;
-        else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
-        else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
-        else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-        //First half hour is missed 8 - 14 
-        else if (hour >= 8 && hour <= 14 && minute >= 30 && minute <= 59) return 8;
-        else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-        //What? first should be ">= 30"? TECHNICALLY WORKS, prev if statement
-        else if (hour == 15 && minute >= 0 || hour == 16 && minute <= 59) return 18;
-        else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
-        else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
-        else return 0;
     }
     /*
     * Fees will differ between 8 SEK and 18 SEK, depending on the time of day 
@@ -86,7 +115,18 @@ public class TollCalculator {
     * Some vehicle types are fee-free
     * Weekends and holidays are fee-free
     */
-
+    /* Fees Estimated
+     * 06:00 - 06:29    08
+     * 06:30 - 06:59    13
+     * 07:00 - 07:59    18
+     * 08:00 - 08:29    13
+     * 08:30 - 14:59    08
+     * 15:00 - 15:29    13
+     * 15:30 - 16:59    18
+     * 17:00 - 17:59    13
+     * 18:00 - 18:29    08
+     * 18:30 - 05:59    FREE
+     */
 
     private Boolean IsTollFreeDate(DateTime date) {
         //Weekends are free
@@ -94,19 +134,7 @@ public class TollCalculator {
         if (date.Month == 7) return true;
         var holidays = new SwedenPublicHoliday().PublicHolidays(date.Year);
         if (holidays.Contains(date.Date)) return true;
-/*        if (year == 2013) {
-            if (month == 1 && day == 1 || // Nyårs dagen
-                month == 3 && (day == 28 || day == 29) || //Skärtorsdag Å långfredag
-                month == 4 && (day == 1 || day == 30) || // Annan dag Påsk Å Kungensfödelsedag
-                month == 5 && (day == 1 || day == 8 || day == 9) || // Första maj, dagen före + Kristihimmelsfärd
-                month == 6 && (day == 5 || day == 6 || day == 21) || // dagen före + Nationaldagen, Sommarsolståndet
-                month == 7 || // Hela Juli
-                month == 11 && day == 1 || // Allhelgonadagen
-                month == 12 && (day == 24 || day == 25 || day == 26 || day == 31)) // Julafton, Juldagen, Annandag jul, Nyårsafton
-            {
-                return true;
-            }
-        }*/
+
         return false;
     }
 
